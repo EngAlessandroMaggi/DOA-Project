@@ -1,7 +1,7 @@
 # Project
 
 
-# FRAMEWORK MATLAB
+IDE : MATLAB
 # DOA of a plane wave in a sensor network with random and known coordinates
 
 
