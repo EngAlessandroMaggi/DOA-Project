@@ -1,0 +1,167 @@
+clc;
+clear all;
+
+SNR_dB = 10; %Rapporto segnale rumore in decibel
+f = 60; %frequenza;
+theta_vero = 30; 
+a = 1; %ampiezza
+sn = 20;
+
+for sn = 20:80:180
+    [theta_all, funzionale_di_costo] = DOA(sn, SNR_dB,f,theta_vero,a);
+    graphicsTest(theta_all, funzionale_di_costo,sn,SNR_dB,f,theta_vero,a);
+end
+
+
+
+SNR_dB = 10; %Rapporto segnale rumore in decibel
+f = 60; %frequenza;
+theta_vero = 30; 
+a = 1; %ampiezza
+sn = 30;
+
+for a = 1:50:101
+    [theta_all, funzionale_di_costo] = DOA(sn, SNR_dB,f,theta_vero,a);
+    graphicsTest(theta_all, funzionale_di_costo,sn,SNR_dB,f,theta_vero,a);
+end
+
+
+SNR_dB = 10; %Rapporto segnale rumore in decibel
+f = 60; %frequenza;
+theta_vero = 30; 
+a = 1; %ampiezza
+sn = 30;
+
+for SNR_dB = 10:20:50
+    [theta_all, funzionale_di_costo] = DOA(sn, SNR_dB,f,theta_vero,a);
+    graphicsTest(theta_all, funzionale_di_costo,sn,SNR_dB,f,theta_vero,a)
+end
+
+
+
+
+
+SNR_dB = 10; %Rapporto segnale rumore in decibel
+f = 60; %frequenza;
+theta_vero = 30; 
+a = 1; %ampiezza
+sn = 30;
+
+for f = 30:30:90
+    [theta_all, funzionale_di_costo] = DOA(sn, SNR_dB,f,theta_vero,a);
+    graphicsTest(theta_all, funzionale_di_costo,sn,SNR_dB,f,theta_vero,a)
+end
+
+
+
+function graphicsTest(theta_all, funzionale_di_costo,sn,SNR_dB,f,theta_vero,a)
+    figure;
+    plot(theta_all,funzionale_di_costo,"LineWidth",2);
+    title(['numero di sensori ='  num2str(sn),...
+        ' SNRdB =' num2str(SNR_dB),...
+        'dB frequenza = ' num2str(f),...
+        'Hz thetaVero = ' num2str(theta_vero),...
+        'gradi ampiezza= ' num2str(a)]);
+    
+    ylabel('funzionale di costo')
+    xlabel('gradi θ')
+    grid on;
+end
+
+
+function [theta_all,funzionale_di_costo] = DOA(sn,SNR_dB,f,theta_vero,a)
+
+
+%crea un segnale sinusoidale 
+%f = 60; %frequenza
+fc = 1000;%frequenza di campionamento
+Tc = 1/fc; %intervallo di campionamento
+N = 100; %numero di campioni
+phi = 0; %fase
+%a = 100; %ampiezza
+t = (0:N-1)*Tc;
+s_tx_tot = a*sin(2*pi*f*t+phi);
+tempo = length(t);
+
+
+% plot(t,s_tx_tot)
+% title('Segnale sinusoidale trasmesso')
+% xlabel('time(s)')
+% ylabel('amplitude(V)')
+% grid on;
+
+l_x = 100;
+l_y = 100;
+x=rand([sn,1])*l_x; % x coordinate of a sn
+y=rand([sn,1])*l_y; % y coordinate of a sn
+A = [x y];
+
+% figure;
+% plot(x,y,'mo',...
+%     'LineWidth',2,...
+%     'MarkerEdgeColor','k',...
+%     'MarkerFaceColor',[.17 0.66 .83],...
+%     'MarkerSize',10)
+% legend('SN')
+% title('sensori presenti in uno spazio 100x100 metri');
+% xlabel('metri')
+% ylabel('metri')
+% grid on
+
+
+
+%costanti fissate 
+c_vel = 340; %m/s speed of sound in air fissata
+w_c = 2*pi*f; %fissata pulsazione normalizzata
+
+SNR = 10^(SNR_dB/10);
+sigma2 = a^2/(2*SNR);
+
+%conversione dei gradi in radianti
+theta_rad = deg2rad(theta_vero) ; %fissato a 30 gradi, converto l'angolo in radianti 
+s_trasm = zeros(length(t),sn);
+
+for k = 1:length(t)
+    
+        time = t(k);
+        
+        d_x  = A(:,1)-A(1,1);
+        d_y  = A(:,2)-A(1,2);
+                       
+        tau  = (d_x*cos(theta_rad)+ d_y*sin(theta_rad))/c_vel; %ritardo segnale
+        sv = exp(-1j*w_c*tau);%steering vector
+        
+        s_trasm(k,:) = sv*a*sin(2*pi*f*time+phi);           
+end
+
+errore = 1/sqrt(2)*(randn(length(t),sn) + 1i*randn(length(t),sn))*sqrt(sigma2); % moltiplico 1/sqrt(2) perchè è un segnale complesso 
+x_oss = s_trasm + errore ;
+
+
+y_k = zeros(length(t),sn);
+passo = 0.5; 
+theta_all = 0:passo:180;
+
+for j = 1: length(theta_all)
+    
+    theta = theta_all(j);
+    theta_rad = deg2rad(theta); %converto l'angolo in radianti 
+    
+    for k = 1:length(t)
+        
+        time = t(k);
+        
+        d_x  = A(:,1)-A(1,1);
+        d_y  = A(:,2)-A(1,2);
+                       
+        tau  = (d_x*cos(theta_rad)+ d_y*sin(theta_rad))/c_vel; %ritardo segnale
+        sv = exp(-1j*w_c*tau);%steering vector
+            
+        s_trasm = a*sin(2*pi*f*time+phi);
+        y_k(k,:) = sv*s_trasm;
+        
+    end
+    errore = y_k - x_oss;
+    funzionale_di_costo(j) = (norm(errore,'fro'))^2;
+end
+end
