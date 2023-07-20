@@ -2,7 +2,7 @@
 
 
 # FRAMEWORK MATLAB
-# SET OF SENSORS AND JOINT ANALYSIS OF THE SIGNALS ACQUIRED BY IT WITH A KNOWN SIGNAL DOA 
+# DOA of a plane wave in a sensor network with random and known coordinates
 
 
 Some of the sensors are randomly placed in a 100 x 100 meter plot, to which a sinusoidal signal is transmitted.
